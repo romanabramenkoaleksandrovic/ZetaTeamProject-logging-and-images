@@ -39,5 +39,5 @@
 **• System.Threading.Tasks** - для реализации асинхронных методов.  
 **• SixLabors.ImageSharp** - для загрузки, изменения и сохранения изображений.  
 **• SixLabors.ImageSharp.Formats.Png** - для точного декодирования и кодирования формата PNG.  
-**• SixLabors.ImageSharp.PixelFormats** - для доступа к каналам пикселе (RGBA32).  
+**• SixLabors.ImageSharp.PixelFormats** - для доступа к каналам пикселей (RGBA32).  
 **• System.Text** - для преобразование текста в набор битов (UTF8) и обратно.
