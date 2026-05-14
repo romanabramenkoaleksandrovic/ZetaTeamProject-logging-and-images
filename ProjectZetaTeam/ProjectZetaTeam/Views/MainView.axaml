@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ProjectZetaTeam.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="550" MinHeight="550" MinWidth="800"
+             x:Class="ProjectZetaTeam.Views.MainView"
+             x:DataType="vm:MainViewModel">
+
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainViewModel />
+  </Design.DataContext>
+    <Border Background="Transparent" 
+        DragDrop.AllowDrop="True" 
+        DragDrop.Drop="OnVisualElementDrop"
+        DragDrop.DragOver="OnVisualElementDragOver"
+        Padding="20">
+  <Grid RowDefinitions="Auto, *" Classes="mainContainer" >
+    
+
+    <Border Classes="header" Grid.Row="0" HorizontalAlignment="Center">
+      <StackPanel Classes="title" Orientation="Horizontal" >
+        <TextBlock Margin="80 0 0 0" FontSize="35">ZETA/</TextBlock>
+        <TextBlock Foreground="Red" FontSize="35">/TEAM</TextBlock>
+        <TextBlock Text="жоске вайбкодинг"/>
+      </StackPanel>
+    </Border>
+
+    <StackPanel Orientation="Vertical">
+    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+        <Button Name="ThemeToggleButton"
+                Margin="6 6 0 0"
+                Content="Сменить тему" 
+                Click="ThemeToggleButton_OnClick" 
+                Padding="15,8"/>
+    </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Margin="20 50 0 0">
+          <TextBlock FontSize="20" Text="Выберите файл:" Margin="0 3 0 0"/>
+          <Button
+           Name="SelectFile" 
+           Content="Выбрать" 
+           FontSize="16"
+           Margin="20 0 0 0" 
+           Click="SelectFileButton_Click"/>
+      </StackPanel>
+
+      <TextBlock Name="SelectedFileText" Margin="20 0 0 0" Text="// Тут путь до выбранного файла" Opacity="0.5"/>
+      <TextBlock Name="MessageTextBlock" Margin="20 0 0 0" Text="// А тут выводятся сообщения" Opacity="0.5"/>
+
+      <StackPanel Orientation="Horizontal" Margin="20 230 0 0">
+        <TextBlock FontSize="20" Text="Текст:" Margin="0 3 0 0"/>
+        <TextBox Name="TextMessage" Margin="10 0 0 10" Width="650" Height="100" TextWrapping="Wrap" Watermark="Введите текст..."/>
+      </StackPanel>
+
+    <StackPanel Orientation="Horizontal">
+        <Button Name="Start" Content="Зашифровать" HorizontalAlignment="Center" Click="OnEncryptAndSaveButtonClick"/>
+        <Button Name="StartDeEncrypt" Content="Расшифровать" HorizontalAlignment="Center" Click="OnDecryptButtonClick" Margin="10 0 0 0"/>
+        </StackPanel>
+    </StackPanel>
+
+
+      <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4"  Width="450" Height="300" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0 55 20 0">
+            <Image x:Name="SelectedImage" 
+                   Stretch="Uniform" 
+                   VerticalAlignment="Center" 
+                   HorizontalAlignment="Center"/>
+        </Border>
+        
+  </Grid>
+        </Border>
+</UserControl>

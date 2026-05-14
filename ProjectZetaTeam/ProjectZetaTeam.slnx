@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="ProjectZetaTeam.Android/ProjectZetaTeam.Android.csproj" />
+  <Project Path="ProjectZetaTeam.Browser/ProjectZetaTeam.Browser.csproj" />
+  <Project Path="ProjectZetaTeam.Desktop/ProjectZetaTeam.Desktop.csproj" />
+  <Project Path="ProjectZetaTeam.iOS/ProjectZetaTeam.iOS.csproj" />
+  <Project Path="ProjectZetaTeam/ProjectZetaTeam.csproj" />
+</Solution>
