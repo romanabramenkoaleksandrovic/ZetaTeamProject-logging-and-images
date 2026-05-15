@@ -239,8 +239,8 @@ namespace ProjectZetaTeam.Views
                     string message = await Task.Run(() => ExifSteganography.ExtractMessageFromExif(_currentInputFilePath));
 
                     MessageTextBlock.Text = string.IsNullOrEmpty(message)
-                        ? "Сообщение не найдено."
-                        : $"Извлечённо сообщение {message}";
+                        ? "Сообщений не найдено."
+                        : $"Сообщение успешно извлечено.";
                     TextMessage.Text = message;
                 }
                 catch (Exception ex)
