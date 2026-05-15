@@ -11,14 +11,16 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+
 namespace ProjectZetaTeam.Views
 {
     public partial class MainView : UserControl
     {
-        private readonly string[] _supportedExtensions = { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp" };
+        private readonly string[] _supportedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
         public MainView()
         {
             InitializeComponent();
+            MethodsSelect.SelectedIndex = 0;
         }
 
         private void ThemeToggleButton_OnClick(object? sender, RoutedEventArgs e)
@@ -65,8 +67,8 @@ namespace ProjectZetaTeam.Views
                 {
                 new FilePickerFileType("Изображения (*.jpg, *.png, *.webp)")
                 {
-                    Patterns = new[] { "*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", "*.webp" },
-                    MimeTypes = new[] { "image/jpeg", "image/png", "image/bmp", "image/gif", "image/webp" }
+                    Patterns = new[] { "*.jpg", "*.jpeg", "*.png", "*.webp" },
+                    MimeTypes = new[] { "image/jpeg", "image/png", "image/webp" }
                 },
                 FilePickerFileTypes.All
                 }
@@ -82,7 +84,7 @@ namespace ProjectZetaTeam.Views
             return null;
         }
 
-        private async void OnVisualElementDragOver(object? sender, DragEventArgs e)
+        private void OnVisualElementDragOver(object? sender, DragEventArgs e)
         {
             if (e.DataTransfer.Contains(DataFormat.File))
                 e.DragEffects = DragDropEffects.Copy;
@@ -97,28 +99,20 @@ namespace ProjectZetaTeam.Views
 
             try
             {
-                byte[] imageData;
-                using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    imageData = new byte[fileStream.Length];
-                    await fileStream.ReadAsync(imageData, 0, imageData.Length);
-                }
-
-                using var memoryStream = new MemoryStream(imageData);
-                var bitmap = new Bitmap(memoryStream);
+                await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                var bitmap = new Bitmap(fileStream);
                 SelectedImage.Source = bitmap;
                 _currentInputFilePath = filePath;
                 SelectedFileText.Text = filePath;
-                MessageTextBlock.Text = "";
-                TextMessage.Text = "";
-                MessageTextBlock.Text = "";
+                MessageTextBlock.Text = string.Empty;
+                TextMessage.Text = string.Empty;
             }
             catch (Exception ex)
             {
                 MessageTextBlock.Text = $"Ошибка загрузки: {ex.Message}";
                 SelectedImage.Source = null;
                 _currentInputFilePath = null;
-                SelectedFileText.Text = "";
+                SelectedFileText.Text = string.Empty;
             }
         }
 
@@ -155,81 +149,104 @@ namespace ProjectZetaTeam.Views
 
         private async void OnEncryptAndSaveButtonClick(object? sender, RoutedEventArgs e)
         {
+            if (string.IsNullOrEmpty(_currentInputFilePath))
+            {
+                MessageTextBlock.Text = "Ошибка: Сначала выберите исходное изображение!";
+                return;
+            }
+
+            string secretText = TextMessage.Text ?? "";
+            if (string.IsNullOrWhiteSpace(secretText))
+            {
+                MessageTextBlock.Text = "Ошибка: Введите текст для сокрытия.";
+                return;
+            }
+
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel == null) return;
+
+            var saveOptions = new FilePickerSaveOptions
+            {
+                Title = "Сохранить изображение",
+                SuggestedFileName = $"ZetaTeam_{Guid.NewGuid().ToString().Substring(0, 8)}.png",
+                FileTypeChoices = new[] { FilePickerFileTypes.ImagePng }
+            };
+
+            var targetFile = await topLevel.StorageProvider.SaveFilePickerAsync(saveOptions);
+            if (targetFile == null) return;
+
+            string outputPath = targetFile.Path.LocalPath;
+
             try
             {
-                if (string.IsNullOrEmpty(_currentInputFilePath))
+                if (MethodsSelect.SelectedIndex == 0) // LSB
                 {
-                    MessageTextBlock.Text = "Ошибка: Сначала выберите исходное изображение!";
-                    return;
-                }
-
-                string secretText = TextMessage.Text ?? "";
-                if (string.IsNullOrWhiteSpace(secretText))
-                {
-                    MessageTextBlock.Text = "Ошибка: Введите текст для сокрытия.";
-                    return;
-                }
-
-                var topLevel = TopLevel.GetTopLevel(this);
-                if (topLevel == null) return;
-
-                var saveOptions = new FilePickerSaveOptions
-                {
-                    Title = "Сохранить изображение",
-                    DefaultExtension = "png",
-                    SuggestedFileName = $"ZetaTeam_{Guid.NewGuid().ToString().Substring(0, 8)}.png",
-                    FileTypeChoices = new FilePickerFileType[]
-                    {
-                        new FilePickerFileType("Изображение PNG (*.png)") { Patterns = new[] { "*.png" } }
-                    }
-                };
-
-                var targetFile = await topLevel.StorageProvider.SaveFilePickerAsync(saveOptions);
-                if (targetFile != null)
-                {
-                    string outputPath = targetFile.Path.LocalPath;
                     await Task.Run(() => LsbSteganography.HideText(_currentInputFilePath, outputPath, secretText));
-
-                    if (SelectedImage.Source is IDisposable bitmap)
-                        bitmap.Dispose();
-                    SelectedImage.Source = null;
-                    _currentInputFilePath = null;
-                    SelectedFileText.Text = "";
-                    TextMessage.Text = "";
                     MessageTextBlock.Text = "Изображение успешно сохранено!";
                 }
+                else if (MethodsSelect.SelectedIndex == 1) // EXIF
+                {
+                    await Task.Run(() => ExifSteganography.HideMessageInExif(_currentInputFilePath, secretText, outputPath));
+                    MessageTextBlock.Text = "Сообщение успешно спрятано!";
+                }
+                
             }
             catch (Exception ex)
             {
-                MessageTextBlock.Text = $"Ошибка LSB: {ex.Message}";
+                MessageTextBlock.Text = $"Ошибка: {ex.Message}";
             }
         }
 
         private async void OnDecryptButtonClick(object? sender, RoutedEventArgs e)
         {
-            try
+            if (MethodsSelect.SelectedIndex == 0) // LSB
             {
-                if (string.IsNullOrEmpty(_currentInputFilePath))
+                try
                 {
-                    MessageTextBlock.Text = "Ошибка: Сначала перетащите или выберите зашифрованный файл!";
-                    return;
-                }
+                    if (string.IsNullOrEmpty(_currentInputFilePath))
+                    {
+                        MessageTextBlock.Text = "Ошибка: Сначала перетащите или выберите зашифрованный файл!";
+                        return;
+                    }
 
-                string hiddenMessage = await Task.Run(() => LsbSteganography.ExtractText(_currentInputFilePath));
+                    string hiddenMessage = await Task.Run(() => LsbSteganography.ExtractText(_currentInputFilePath));
 
-                if (!string.IsNullOrEmpty(hiddenMessage))
-                {
-                    TextMessage.Text = hiddenMessage;
-                    MessageTextBlock.Text = "Сообщение успешно извлечено.";
+                    if (!string.IsNullOrEmpty(hiddenMessage))
+                    {
+                        TextMessage.Text = hiddenMessage;
+                        MessageTextBlock.Text = "Сообщение успешно извлечено.";
+                    }
+                    else
+                    {
+                        MessageTextBlock.Text = "Сообщений не найдено.";
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageTextBlock.Text = "Сообщений не найдено.";
+                    MessageTextBlock.Text = $"Ошибка дешифровки: {ex.Message}";
                 }
             }
-            catch (Exception ex)
+            else if (MethodsSelect.SelectedIndex == 1) // EXIF
             {
-                MessageTextBlock.Text = $"Ошибка дешифровки: {ex.Message}";
+                try
+                {
+                    if (string.IsNullOrEmpty(_currentInputFilePath))
+                    {
+                        MessageTextBlock.Text = "Ошибка: Сначала перетащите или выберите зашифрованный файл!";
+                        return;
+                    }
+
+                    string message = await Task.Run(() => ExifSteganography.ExtractMessageFromExif(_currentInputFilePath));
+
+                    MessageTextBlock.Text = string.IsNullOrEmpty(message)
+                        ? "Сообщение не найдено."
+                        : $"Извлечённо сообщение {message}";
+                    TextMessage.Text = message;
+                }
+                catch (Exception ex)
+                {
+                    MessageTextBlock.Text = $"Ошибка дешифровки: {ex.Message}";
+                }
             }
         }
     }
